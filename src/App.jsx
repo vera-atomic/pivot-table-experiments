@@ -93,7 +93,9 @@ function App() {
         <Inject services={[GroupingBar, VirtualScroll, DrillThrough]} />
       </PivotViewComponent>
 
-      <button onClick={handleGetData}>Get Pivot Data</button>
+      <button style={{ marginTop: '2rem' }} onClick={handleGetData}>
+        Get Pivot Data
+      </button>
     </div>
   );
 }
