@@ -5,6 +5,7 @@ import {
   Inject,
   GroupingBar,
   VirtualScroll,
+  DrillThrough,
 } from '@syncfusion/ej2-react-pivotview';
 import { registerLicense } from '@syncfusion/ej2-base';
 
@@ -55,7 +56,6 @@ function App() {
     allowEditing: true,
     allowInlineEditing: true,
     mode: 'Normal',
-    showConfirmDialog: true,
   };
 
   const handleGetData = () => {
@@ -66,9 +66,17 @@ function App() {
     }
   };
 
+  const drillThrough = (args) => {
+    if (args.rawData.length > 1) {
+      args.cancel = true;
+    }
+  };
+
   return (
     <div>
       <PivotViewComponent
+        allowDrillThrough={true}
+        drillThrough={(args) => drillThrough(args)}
         ref={pivotRef}
         id="PivotViewReviewAndPublish"
         enableVirtualization={true}
@@ -80,11 +88,9 @@ function App() {
         enableValueSorting={true}
         allowExcelExport={true}
         aggregateTypes={['Sum']}
-        // cellClick={(args) => console.warn(args)}
         editSettings={editSettings}
-        allowValueEditing={false}
       >
-        <Inject services={[GroupingBar, VirtualScroll]} />
+        <Inject services={[GroupingBar, VirtualScroll, DrillThrough]} />
       </PivotViewComponent>
 
       <button onClick={handleGetData}>Get Pivot Data</button>
