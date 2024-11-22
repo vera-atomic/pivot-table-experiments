@@ -68,8 +68,15 @@ function App() {
 
   const drillThrough = (args) => {
     if (args.rawData.length > 1) {
+      // args.cancel stops the default edit values modal to pop up which usually does when
+      // we try to edit aggregated fields
       args.cancel = true;
+      // this is the case where we've double clicked on an aggregated data cell
+      // args will hold all the detail of all raw rows that are affecting that aggregated value
+      // in the args.rawData array, we can cycle through and change the values here row by row
     }
+    // out of this conditional is the case of when we're trying to edit a normal unit row cell
+    // editing it automatically out of the box updates the aggregated values
   };
 
   return (
