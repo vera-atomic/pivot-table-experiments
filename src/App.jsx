@@ -75,8 +75,13 @@ function App() {
     if (args.rawData.length > 1) {
       args.cancel = true;
       setIsAggregatedModalOpen(true);
+      setCurrentAggregatedCell(args);
     }
     // else continue as usual
+  };
+
+  const onModalClose = () => {
+    setIsAggregatedModalOpen(false);
   };
 
   return (
@@ -104,7 +109,22 @@ function App() {
         <AggregatedEditModal
           open={isAggregatedModalOpen}
           onClose={() => setIsAggregatedModalOpen(false)}
-          onSave={() => {}}
+          onSave={(editedRows) => {
+            const affectedIndices = Object.values(
+              currentAggregatedCell.currentCell.indexObject
+            );
+            const updatedData = data.map((r, index) => {
+              const copy = { ...r };
+              if (affectedIndices.includes(index)) {
+                const editIndex = affectedIndices.indexOf(index);
+                copy.quantity = editedRows[editIndex].quantity;
+              }
+              return copy;
+            });
+            setData(updatedData);
+            setCurrentAggregatedCell(null);
+            onModalClose();
+          }}
           currentAggregatedCell={currentAggregatedCell}
         />
       )}

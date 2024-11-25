@@ -13,55 +13,92 @@ import InfoIcon from '@mui/icons-material/Info';
 import { DataGridPro } from '@mui/x-data-grid-pro';
 
 function AggregatedEditModal({ open, onClose, currentAggregatedCell, onSave }) {
-  const [editedData, setEditedData] = useState([]);
-  const [newBulkValue, setNewBulkValue] = useState(0);
+  const initialRowsCopy = currentAggregatedCell.rawData.map((r, index) => ({
+    ...r,
+    id: index,
+  }));
 
-  // Handle row update
-  const handleProcessRowUpdate = (updatedRow) => {
-    setEditedData((prevRows) =>
-      prevRows.map((row) => (row.id === updatedRow.id ? updatedRow : row))
-    );
-    return updatedRow;
-  };
+  const [editedRows, setEditedRows] = useState(initialRowsCopy);
+  const [aggValue, setAggValue] = useState(
+    currentAggregatedCell.currentCell.actualValue
+  );
 
   const columns = [
     {
-      field: 'quantity',
-      headerName: 'Quantity',
-      type: 'number',
-      width: 150,
-      editable: true,
-    },
-    {
-      field: 'order_placed_date',
-      headerName: 'Date',
-      width: 180,
-      editable: true,
+      field: 'sku',
+      headerName: 'SKU',
+      width: 200,
     },
     {
       field: 'channel',
       headerName: 'Channel',
       width: 180,
-      editable: true,
     },
     {
       field: 'location',
       headerName: 'Location',
       width: 150,
-      editable: true,
     },
     {
-      field: 'sku',
-      headerName: 'SKU',
-      width: 200,
-      editable: true,
+      field: 'quantity',
+      headerName: 'Quantity',
+      type: 'number',
+      width: 150,
+    },
+    {
+      field: 'order_placed_date',
+      headerName: 'Date',
+      width: 180,
     },
   ];
 
-  // Handle saving the updated data
-  const handleSave = () => {
-    onSave(editedData);
-    onClose();
+  const adjustRows = () => {
+    const oldAggValue = currentAggregatedCell.currentCell.actualValue;
+    // To deal with potential rounding discrepancies
+    let editedRowsTotal = 0;
+
+    const updatedRows = editedRows.map((r, index) => {
+      const copy = { ...r };
+      const oldRatio =
+        currentAggregatedCell.rawData[index].quantity / oldAggValue;
+      copy.quantity = Math.round(oldRatio * aggValue);
+      editedRowsTotal += copy.quantity;
+      return copy;
+    });
+
+    const difference = aggValue - editedRowsTotal;
+
+    if (difference !== 0) {
+      // Find the row with the lowest quantity if the difference is positive, or the highest if negative
+      let rowToAdjustIndex = 0;
+      let compareValue = difference > 0 ? Infinity : -Infinity;
+
+      updatedRows.forEach((row, index) => {
+        if (
+          (difference > 0 && row.quantity < compareValue) ||
+          (difference < 0 && row.quantity > compareValue)
+        ) {
+          rowToAdjustIndex = index;
+          compareValue = row.quantity;
+        }
+      });
+
+      // recompute to be sure
+      editedRowsTotal -= updatedRows[rowToAdjustIndex].quantity;
+
+      // Apply the difference to the chosen row, ensuring it doesn't go below zero
+      updatedRows[rowToAdjustIndex].quantity = Math.max(
+        updatedRows[rowToAdjustIndex].quantity + difference,
+        0
+      );
+
+      editedRowsTotal += updatedRows[rowToAdjustIndex].quantity;
+    }
+
+    setEditedRows(updatedRows);
+    // just to make sure, in case our difference distribution didn't go as expected, that the aggValue
+    // always shows the sum of all rows
+    setAggValue(editedRowsTotal);
   };
 
   return (
@@ -79,7 +116,7 @@ function AggregatedEditModal({ open, onClose, currentAggregatedCell, onSave }) {
               Bulk Update Preview
             </Typography>
 
-            <Tooltip title="You can preview here how editing the aggregated value will change the rows that compose it.">
+            <Tooltip title="Adjust aggregated values, and see how underlying rows will proportionately update.">
               <IconButton
                 size="sm"
                 variant="plain"
@@ -99,14 +136,22 @@ function AggregatedEditModal({ open, onClose, currentAggregatedCell, onSave }) {
             }}
           >
             <Typography level="body2" id="bulk-value-label" sx={{ mr: 1 }}>
-              Adjust the bulk value:
+              Adjust the aggregated value:
             </Typography>
             <Input
               type="number"
-              value={newBulkValue}
-              onChange={() => {}}
+              value={aggValue}
+              onChange={(event) => {
+                setAggValue(Number(event.target.value));
+              }}
               aria-labelledby="bulk-value-label"
               sx={{ width: '150px' }}
+              onKeyDown={(e) => {
+                if (e.keyCode == 13) {
+                  e.target.blur();
+                }
+              }}
+              onBlur={adjustRows}
             />
           </div>
 
@@ -115,15 +160,9 @@ function AggregatedEditModal({ open, onClose, currentAggregatedCell, onSave }) {
               height: 400,
               width: '100%',
               marginBottom: '16px',
-              maxHeight: '200px',
             }}
           >
-            <DataGridPro
-              rows={editedData}
-              columns={columns}
-              processRowUpdate={handleProcessRowUpdate}
-              experimentalFeatures={{ newEditingApi: true }}
-            />
+            <DataGridPro rows={editedRows} columns={columns} />
           </div>
 
           <Sheet sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
@@ -134,7 +173,7 @@ function AggregatedEditModal({ open, onClose, currentAggregatedCell, onSave }) {
               variant="solid"
               color="primary"
               sx={{ ml: 2 }}
-              onClick={handleSave}
+              onClick={() => onSave(editedRows)}
             >
               Save Changes
             </Button>
