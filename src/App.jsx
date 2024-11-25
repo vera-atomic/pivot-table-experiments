@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { dummyData } from './data';
 import {
   PivotViewComponent,
@@ -16,6 +16,7 @@ import './App.css';
 
 function App() {
   const pivotRef = useRef(null);
+  const [data, setData] = useState(dummyData);
 
   const gridSettings = {
     allowSelection: true,
@@ -25,7 +26,7 @@ function App() {
   };
 
   const dataSourceSettings = {
-    dataSource: dummyData,
+    dataSource: data,
     columns: [
       { name: 'order_placed_date', caption: 'Date', showRemoveIcon: true },
       { name: 'channel', caption: 'Channel', showRemoveIcon: true },
@@ -67,16 +68,23 @@ function App() {
   };
 
   const drillThrough = (args) => {
+    // we clicked on an aggregated cell
     if (args.rawData.length > 1) {
-      // args.cancel stops the default edit values modal to pop up which usually does when
-      // we try to edit aggregated fields, this works on column or row aggregated data
       args.cancel = true;
-      // this is the case where we've double clicked on an aggregated data cell
-      // args will hold all the detail of all raw rows that are affecting that aggregated value
-      // in the args.rawData array, we can cycle through and change the values here row by row
+      const affectedIndices = Object.values(args.currentCell.indexObject);
+      const newData = data.map((r, index) => {
+        const copy = { ...r };
+        if (affectedIndices.includes(index)) {
+          // just make some change to test affected indices
+          copy.quantity = 1;
+        }
+        return copy;
+      });
+
+      setData(newData);
     }
-    // out of this conditional is the case of when we're trying to edit a normal unit row cell
-    // editing it automatically out of the box updates the aggregated values
+
+    // else continue as usual
   };
 
   return (
