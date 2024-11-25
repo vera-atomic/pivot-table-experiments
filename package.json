@@ -10,6 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "@mui/icons-material": "^6.1.8",
+    "@mui/joy": "^5.0.0-beta.48",
+    "@mui/material": "^6.1.8",
+    "@mui/system": "^6.1.8",
+    "@mui/x-data-grid-pro": "^7.22.3",
     "@syncfusion/ej2-base": "^27.2.2",
     "@syncfusion/ej2-react-pivotview": "^27.2.3",
     "react": "^18.3.1",
@@ -17,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
+    "@rollup/plugin-commonjs": "^28.0.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",

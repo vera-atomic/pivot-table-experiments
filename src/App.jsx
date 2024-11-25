@@ -12,11 +12,14 @@ import { registerLicense } from '@syncfusion/ej2-base';
 registerLicense(import.meta.env.VITE_SYNCFUSION_LICENSE);
 
 import './App.css';
+import AggregatedEditModal from './AggregatedEditModal';
 // import SyncFusion from './components/SyncFusion';
 
 function App() {
   const pivotRef = useRef(null);
   const [data, setData] = useState(dummyData);
+  const [isAggregatedModalOpen, setIsAggregatedModalOpen] = useState(false);
+  const [currentAggregatedCell, setCurrentAggregatedCell] = useState(null);
 
   const gridSettings = {
     allowSelection: true,
@@ -71,19 +74,8 @@ function App() {
     // we clicked on an aggregated cell
     if (args.rawData.length > 1) {
       args.cancel = true;
-      const affectedIndices = Object.values(args.currentCell.indexObject);
-      const newData = data.map((r, index) => {
-        const copy = { ...r };
-        if (affectedIndices.includes(index)) {
-          // just make some change to test affected indices
-          copy.quantity = 1;
-        }
-        return copy;
-      });
-
-      setData(newData);
+      setIsAggregatedModalOpen(true);
     }
-
     // else continue as usual
   };
 
@@ -107,6 +99,15 @@ function App() {
       >
         <Inject services={[GroupingBar, VirtualScroll, DrillThrough]} />
       </PivotViewComponent>
+
+      {isAggregatedModalOpen && (
+        <AggregatedEditModal
+          open={isAggregatedModalOpen}
+          onClose={() => setIsAggregatedModalOpen(false)}
+          onSave={() => {}}
+          currentAggregatedCell={currentAggregatedCell}
+        />
+      )}
 
       <button style={{ marginTop: '2rem' }} onClick={handleGetData}>
         Get Pivot Data
