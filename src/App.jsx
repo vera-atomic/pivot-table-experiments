@@ -75,6 +75,7 @@ function App() {
     if (args.rawData.length > 1) {
       args.cancel = true;
       setIsAggregatedModalOpen(true);
+      setCurrentAggregatedCell(args);
     }
     // else continue as usual
   };
