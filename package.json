@@ -19,6 +19,7 @@
     "@mui/x-data-grid-pro": "^7.22.3",
     "@syncfusion/ej2-base": "^27.2.2",
     "@syncfusion/ej2-react-pivotview": "^27.2.3",
+    "papaparse": "^5.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react';
-import { dummyData } from './data';
+import { useRef, useState, useEffect } from 'react';
 import {
   DrillThrough,
   GroupingBar,
@@ -8,6 +7,7 @@ import {
   VirtualScroll,
 } from '@syncfusion/ej2-react-pivotview';
 import { registerLicense } from '@syncfusion/ej2-base';
+import Papa from 'papaparse';
 
 registerLicense(import.meta.env.VITE_SYNCFUSION_LICENSE);
 
@@ -22,19 +22,68 @@ const PIVOT_DEFAULT_SETTINGS = {
   channel: { name: 'channel', caption: 'Channel' },
 };
 
+// Function to change the date to the first day of the month
+const modifyOrderPlacedDate = (dateString) => {
+  if (dateString) {
+    const date = new Date(dateString);
+    date.setDate(1); // Set the date to the first of the month
+    const isoString = date.toISOString().split('T')[0]; // Format the date as YYYY-MM-DD
+    return isoString;
+  }
+};
+
+const transformCSV = (csvData) => {
+  const parsedData = Papa.parse(csvData, { header: true });
+
+  // Filter out rows where any value is missing
+  const cleanedData = parsedData.data.filter((row) => {
+    return Object.values(row).every(
+      (value) => value !== undefined && value !== null && value.trim() !== ''
+    );
+  });
+
+  const formattedData = cleanedData
+    .map((row) => ({
+      sku: row.sku,
+      location: Math.random() < 0.5 ? 'Europe' : 'USA', // Randomly assign 'Europe' or 'USA'
+      channel: row.channel,
+      order_placed_date: modifyOrderPlacedDate(row.order_placed_date), // Set date to the first of the month
+      quantity: parseFloat(row.quantity),
+      revenue: parseFloat(row.revenue),
+      id: parseInt(row.id, 10),
+    }))
+    .filter((row) => row.sku);
+  return formattedData;
+};
+
 function App() {
   const pivotRef = useRef(null);
-  const [data, setData] = useState(dummyData);
+  const [data, setData] = useState([]);
   const [isAggregatedModalOpen, setIsAggregatedModalOpen] = useState(false);
   const [currentAggregatedCell, setCurrentAggregatedCell] = useState(null);
   const [columnSettings, setColumnSettings] = useState([
     PIVOT_DEFAULT_SETTINGS.month,
   ]);
-  const [rowSettings, setRowSettings] = useState([PIVOT_DEFAULT_SETTINGS.sku]);
+  const [rowSettings, setRowSettings] = useState([
+    PIVOT_DEFAULT_SETTINGS.channel,
+    PIVOT_DEFAULT_SETTINGS.sku,
+  ]);
   const [filterSettings, setFilterSettings] = useState([
     PIVOT_DEFAULT_SETTINGS.location,
-    PIVOT_DEFAULT_SETTINGS.channel,
   ]);
+
+  useEffect(() => {
+    // This fetch simulates loading the CSV file from a public source or file input.
+    fetch('/src/assets/demand.csv')
+      .then((response) => response.text())
+      .then((csvText) => {
+        const data = transformCSV(csvText);
+        setData(data);
+      })
+      .catch((error) => {
+        console.error('Error fetching CSV:', error);
+      });
+  }, []);
 
   const groupingSettings = {
     showRemoveIcon: false,
