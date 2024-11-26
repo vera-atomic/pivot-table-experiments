@@ -23,21 +23,11 @@ function AggregatedEditModal({ open, onClose, currentAggregatedCell, onSave }) {
     currentAggregatedCell.currentCell.actualValue
   );
 
-  const columns = [
+  const DEFAULT_COLUMN_SETTINGS = [
     {
       field: 'sku',
       headerName: 'SKU',
       width: 200,
-    },
-    {
-      field: 'channel',
-      headerName: 'Channel',
-      width: 180,
-    },
-    {
-      field: 'location',
-      headerName: 'Location',
-      width: 150,
     },
     {
       field: 'quantity',
@@ -45,12 +35,28 @@ function AggregatedEditModal({ open, onClose, currentAggregatedCell, onSave }) {
       type: 'number',
       width: 150,
     },
-    {
-      field: 'order_placed_date',
-      headerName: 'Date',
-      width: 180,
-    },
   ];
+
+  const customColumns = Object.keys(currentAggregatedCell.rawData[0])
+    .filter((k) => !DEFAULT_COLUMN_SETTINGS.map((c) => c.field).includes(k))
+    .filter((colField) => {
+      const gridColDetails = currentAggregatedCell.gridColumns.find(
+        (c) => c.field === colField
+      );
+      return gridColDetails.visible;
+    })
+    .map((colField) => {
+      const gridColDetails = currentAggregatedCell.gridColumns.find(
+        (c) => c.field === colField
+      );
+      return {
+        field: colField,
+        headerName: gridColDetails.headerText,
+        width: gridColDetails.width,
+      };
+    });
+
+  const columns = [...DEFAULT_COLUMN_SETTINGS, ...customColumns];
 
   const adjustRows = () => {
     const oldAggValue = currentAggregatedCell.currentCell.actualValue;

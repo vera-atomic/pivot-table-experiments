@@ -1,8 +1,6 @@
-# React + Vite
+# Backend things to figure out
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- [ ] data normalization:
+  - [ ] date hierarchies (day, week, month): we need to have these as separate columns in our dataset, ex: if a purchase order is to be made on Dec 15 2024 and we want to segment by year, a 2024 column need to exist on that row. Same for week, month. Otherwise FE has to process and insert those columns.
+  - [ ] choose some columns, that will always be named the same (PIVOT_DEFAULT_SETTINGS, DEFAULT_COLUMN_SETTINGS): sku, quantity, date, year, month. These will be the filters that show up by default in the pivot table on load.
+  - [ ] will aggregations always be a sum of quantity?
