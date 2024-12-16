@@ -56,21 +56,24 @@ const transformCSV = (csvData) => {
   return formattedData;
 };
 
+const DEFAULT_DATA_SOURCE_SETTINGS = {
+  dataSource: [],
+  filters: [PIVOT_DEFAULT_SETTINGS.location],
+  formatSettings: [{ format: '###' }],
+  columns: [PIVOT_DEFAULT_SETTINGS.month],
+  rows: [PIVOT_DEFAULT_SETTINGS.channel, PIVOT_DEFAULT_SETTINGS.sku],
+  values: [PIVOT_DEFAULT_SETTINGS.quantity],
+  showSubTotals: false,
+  showGrandTotals: false,
+};
+
 function App() {
   const pivotRef = useRef(null);
-  const [data, setData] = useState([]);
   const [isAggregatedModalOpen, setIsAggregatedModalOpen] = useState(false);
   const [currentAggregatedCell, setCurrentAggregatedCell] = useState(null);
-  const [columnSettings, setColumnSettings] = useState([
-    PIVOT_DEFAULT_SETTINGS.month,
-  ]);
-  const [rowSettings, setRowSettings] = useState([
-    PIVOT_DEFAULT_SETTINGS.channel,
-    PIVOT_DEFAULT_SETTINGS.sku,
-  ]);
-  const [filterSettings, setFilterSettings] = useState([
-    PIVOT_DEFAULT_SETTINGS.location,
-  ]);
+  const [dataSourceSettings, setDataSourceSettings] = useState(
+    DEFAULT_DATA_SOURCE_SETTINGS
+  );
 
   useEffect(() => {
     // This fetch simulates loading the CSV file from a public source or file input.
@@ -78,7 +81,10 @@ function App() {
       .then((response) => response.text())
       .then((csvText) => {
         const data = transformCSV(csvText);
-        setData(data);
+        setDataSourceSettings({
+          ...DEFAULT_DATA_SOURCE_SETTINGS,
+          dataSource: data,
+        });
       })
       .catch((error) => {
         console.error('Error fetching CSV:', error);
@@ -95,17 +101,6 @@ function App() {
     selectionSettings: { mode: 'Cell', type: 'Single' },
     rowHeight: 25,
     allowResizing: false,
-  };
-
-  const dataSourceSettings = {
-    dataSource: data,
-    filters: filterSettings,
-    formatSettings: [{ format: '###' }],
-    columns: columnSettings,
-    rows: rowSettings,
-    values: [PIVOT_DEFAULT_SETTINGS.quantity],
-    showSubTotals: false,
-    showGrandTotals: false,
   };
 
   const editSettings = {
@@ -137,88 +132,6 @@ function App() {
     setIsAggregatedModalOpen(false);
   };
 
-  const onFieldDropped = (args) => {
-    // TO DO: still some bugs when reordering agg col and row order
-    const newField = {
-      name: args.droppedField.name,
-      caption: args.droppedField.caption,
-    };
-
-    if (args.droppedAxis === 'columns') {
-      const newField = {
-        name: args.droppedField.name,
-        caption: args.droppedField.caption,
-      };
-      let newColumns = [];
-      if (args.droppedPosition !== -1) {
-        const pre = dataSourceSettings.columns.slice(0, args.droppedPosition);
-        const post = dataSourceSettings.columns.slice(args.droppedPosition);
-        newColumns = [...pre, newField, ...post];
-      } else {
-        newColumns = [...dataSourceSettings.columns, newField];
-      }
-      setColumnSettings(newColumns);
-      setFilterSettings(
-        args.dataSourceSettings.filters.map((f) => ({
-          name: f.name,
-          caption: f.caption,
-        }))
-      );
-      return;
-    }
-
-    if (args.droppedAxis === 'rows') {
-      let newRows = [];
-      if (args.droppedPosition !== -1) {
-        const pre = dataSourceSettings.rows.slice(0, args.droppedPosition);
-        const post = dataSourceSettings.rows.slice(args.droppedPosition);
-        newRows = [...pre, newField, ...post];
-      } else {
-        newRows = [...dataSourceSettings.rows, newField];
-      }
-      setRowSettings(newRows);
-      setFilterSettings(
-        args.dataSourceSettings.filters.map((f) => ({
-          name: f.name,
-          caption: f.caption,
-        }))
-      );
-      return;
-    }
-
-    // Removing a column or row aggregation
-    if (args.droppedAxis === 'filters') {
-      setColumnSettings(
-        args.dataSourceSettings.columns.map((c) => ({
-          name: c.name,
-          caption: c.caption,
-        }))
-      );
-      setRowSettings(
-        args.dataSourceSettings.rows.map((r) => ({
-          name: r.name,
-          caption: r.caption,
-        }))
-      );
-      setFilterSettings(
-        args.dataSourceSettings.filters.map((f) => ({
-          name: f.name,
-          caption: f.caption,
-        }))
-      );
-      return;
-    }
-
-    // Dropping in an unsupported area
-    if (!args.droppedAxis) {
-      setFilterSettings((curr) => [
-        ...curr.map((f) => ({ name: f.name, caption: f.caption })),
-        newField,
-      ]);
-      return;
-    }
-  };
-
   return (
     <div>
       <PivotViewComponent
@@ -235,7 +148,6 @@ function App() {
         aggregateTypes={['Sum']}
         editSettings={editSettings}
         groupingBarSettings={groupingSettings}
-        onFieldDropped={onFieldDropped}
       >
         <Inject services={[GroupingBar, VirtualScroll, DrillThrough]} />
       </PivotViewComponent>
@@ -248,15 +160,42 @@ function App() {
             const affectedIndices = Object.values(
               currentAggregatedCell.currentCell.indexObject
             );
-            const updatedData = data.map((r, index) => {
-              const copy = { ...r };
-              if (affectedIndices.includes(index)) {
-                const editIndex = affectedIndices.indexOf(index);
-                copy.quantity = editedRows[editIndex].quantity;
+            const updatedData = dataSourceSettings.dataSource.map(
+              (r, index) => {
+                const copy = { ...r };
+                if (affectedIndices.includes(index)) {
+                  const editIndex = affectedIndices.indexOf(index);
+                  copy.quantity = editedRows[editIndex].quantity;
+                }
+                return copy;
               }
-              return copy;
-            });
-            setData(updatedData);
+            );
+
+            if (pivotRef?.current?.dataSourceSettings) {
+              setDataSourceSettings({
+                dataSource: updatedData,
+                filters: pivotRef?.current?.dataSourceSettings.filters.map(
+                  (f) => ({
+                    name: f.properties.name,
+                    caption: f.properties.caption,
+                  })
+                ),
+                formatSettings: [{ format: '###' }],
+                columns: pivotRef?.current?.dataSourceSettings.columns.map(
+                  (c) => ({
+                    name: c.properties.name,
+                    caption: c.properties.caption,
+                  })
+                ),
+                rows: pivotRef?.current?.dataSourceSettings.rows.map((r) => ({
+                  name: r.properties.name,
+                  caption: r.properties.caption,
+                })),
+                values: [PIVOT_DEFAULT_SETTINGS.quantity],
+                showSubTotals: false,
+                showGrandTotals: false,
+              });
+            }
             setCurrentAggregatedCell(null);
             onModalClose();
           }}
